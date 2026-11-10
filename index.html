@@ -84,10 +84,9 @@ footer{text-align:center;color:#5d5b62;font-size:.7rem;padding:8px 0 24px}
 <footer>Календарь смен · v<span id="ver"></span></footer>
 <div id="ov" hidden></div>
 <script>
-const VERSION="1.4";
+const VERSION="1.5";
 const MONTHS=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 const WD=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
-const OCT=new Set([1,4,5,8,9,10,11,12,16,17,20,23,24,25,28,29,31]);
 const START=Date.UTC(2026,10,1); // с 1 ноября: 2 через 2
 // Отличия от графика 2/2: 1 = смена, 0 = выходной, 0.5 = полсмены
 const OVERRIDES={"2026-11-06":0,"2026-11-07":1,"2026-11-08":1,"2026-11-10":0,"2026-11-13":0.5,"2026-11-17":0,"2026-11-20":1};
@@ -98,7 +97,6 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify({v:VERSION,data:edit
 const pad=n=>String(n).padStart(2,"0");
 const key=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
 function base(y,m,d){
-  if(y===2026&&m===9) return OCT.has(d)?1:0;
   const n=Math.round((Date.UTC(y,m,d)-START)/864e5);
   return ((n%4)+4)%4<2?1:0;
 }
@@ -114,7 +112,7 @@ function monthData(y,m){
   return {y,m,lead,cnt,notes,days};
 }
 const fmt=n=>String(n).replace(".",",");
-const LO=2026*12+9,HI=2027*12+11;
+const LO=2026*12+10,HI=2027*12+11;
 let from=2026*12+10,to=2027*12+3;
 let single=innerWidth<600,cur=from;
 const now=new Date(),TK=key(now.getFullYear(),now.getMonth(),now.getDate()),NM=now.getFullYear()*12+now.getMonth();
