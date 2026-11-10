@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Календарь смен</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#121214">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#121214;--card:#1b1b1f;--line:#2a2a30;--text:#e6e3e3;--muted:#85838a;--shift:#8c1c2c;--shift-hi:#b3283c;--off:#222226;--amber:#e0a458;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Manrope,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:28px 16px 24px}
+h1{font-size:1.5rem;font-weight:800;margin:0 0 14px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.bar label{color:var(--muted);font-size:.9rem}
+select,button,input{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font:inherit;font-size:.9rem}
+button{cursor:pointer}
+button.on{background:var(--shift);border-color:var(--shift-hi)}
+.hint{color:var(--amber);font-size:.85rem;margin:0 0 12px}
+.legend{display:flex;gap:18px;color:var(--muted);font-size:.9rem;margin-bottom:22px;flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+body.edit .grid{outline:2px solid var(--amber);outline-offset:8px;border-radius:14px}
+body.edit .d:not(.e){cursor:pointer}
+.month{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.mh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.mh h2{margin:0;font-size:1.15rem;font-weight:800}
+.mh span{color:var(--muted);font-size:.85rem}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wd{text-align:center;font-size:.75rem;color:var(--muted);padding-bottom:4px}
+.wd.we{color:#a8606b}
+.d{position:relative;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:.95rem;background:var(--off);color:#9a98a0;user-select:none}
+.d.e{background:none}
+.d.v{outline:1.5px dashed var(--amber);outline-offset:-2px}
+.d.s{background:var(--shift);color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px var(--shift-hi)}
+.d.h{background:linear-gradient(135deg,var(--off) 50%,var(--shift) 50%);color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px var(--shift-hi)}
+.d.h1{background:linear-gradient(135deg,var(--shift) 50%,var(--off) 50%);color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px var(--shift-hi)}
+.d.p{opacity:.4}
+.sum{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.9rem;line-height:1.6;color:var(--muted)}
+.sum b{color:var(--text)}
+.nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px}
+.nav button{padding:8px 18px;font-size:1.1rem}
+.note{margin-top:12px;font-size:.8rem;color:var(--muted);line-height:1.5}
+.note b{color:var(--amber);font-weight:600}
+footer{text-align:center;color:#5d5b62;font-size:.7rem;padding:8px 0 24px}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.88);overflow:auto;z-index:20;padding:calc(16px + env(safe-area-inset-top,0px)) 16px 24px;text-align:center}
+#ov img{max-width:100%;border-radius:8px}
+#ov p{color:var(--muted);font-size:.85rem}
+#ov .ob{display:flex;gap:10px;justify-content:center;margin:14px 0}
+#ov a{background:var(--shift);color:#fff;text-decoration:none;border-radius:8px;padding:8px 12px;font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>Календарь смен</h1>
+  <div class="bar">
+    <label>с</label><select id="sf"></select>
+    <label>по</label><select id="st"></select>
+    <button id="be">Редактировать</button>
+    <button id="br" hidden>Сбросить правки</button>
+    <button id="bp">Сохранить PNG</button>
+    <button id="bi">Экспорт .ics</button>
+    <button id="bv"></button>
+    <label>часов в смене</label><input id="hh" type="number" min="0" step="0.5" style="width:72px">
+  </div>
+  <p class="hint" id="hint" hidden>Режим редактирования: нажимайте на дни. Круг: по графику → смена → выходной → вторая половина → первая половина.</p>
+  <div class="legend">
+    <span><i style="background:var(--shift)"></i>рабочий день</span>
+    <span><i style="background:var(--off)"></i>выходной</span>
+    <span><i style="background:linear-gradient(135deg,var(--shift) 50%,var(--off) 50%)"></i>полсмены: первая половина дня</span>
+    <span><i style="background:linear-gradient(135deg,var(--off) 50%,var(--shift) 50%)"></i>полсмены: вторая половина дня</span>
+    <span><i style="background:none;border:1.5px dashed var(--amber)"></i>отличие от графика 2/2</span>
+  </div>
+  <div class="sum" id="sum"></div>
+  <div class="nav" id="nav" hidden><button id="np">‹</button><span id="nl"></span><button id="nn">›</button></div>
+  <div class="grid" id="grid"></div>
+</main>
+<footer>Календарь смен · v<span id="ver"></span></footer>
+<div id="ov" hidden></div>
+<script>
+const VERSION="1.4";
+const MONTHS=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const WD=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+const OCT=new Set([1,4,5,8,9,10,11,12,16,17,20,23,24,25,28,29,31]);
+const START=Date.UTC(2026,10,1); // с 1 ноября: 2 через 2
+// Отличия от графика 2/2: 1 = смена, 0 = выходной, 0.5 = полсмены
+const OVERRIDES={"2026-11-06":0,"2026-11-07":1,"2026-11-08":1,"2026-11-10":0,"2026-11-13":0.5,"2026-11-17":0,"2026-11-20":1};
+const KEY="shiftcal.edits";
+let edits=load();
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY));return o&&o.data?o.data:{}}catch(e){return {}}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({v:VERSION,data:edits}))}catch(e){}}
+const pad=n=>String(n).padStart(2,"0");
+const key=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
+function base(y,m,d){
+  if(y===2026&&m===9) return OCT.has(d)?1:0;
+  const n=Math.round((Date.UTC(y,m,d)-START)/864e5);
+  return ((n%4)+4)%4<2?1:0;
+}
+function val(y,m,d){const k=key(y,m,d);return k in edits?edits[k]:k in OVERRIDES?OVERRIDES[k]:base(y,m,d)}
+function monthData(y,m){
+  const dim=new Date(y,m+1,0).getDate(),lead=(new Date(y,m,1).getDay()+6)%7;
+  let cnt=0;const notes=[],days=[];
+  for(let d=1;d<=dim;d++){
+    const v=val(y,m,d),b=base(y,m,d),dev=v!==b;
+    cnt+=Math.abs(v);days.push({d,v,dev});
+    if(dev) notes.push(v===.5?"½ "+d+" (2-я)":v===-.5?"½ "+d+" (1-я)":(v>b?"+":"−")+d);
+  }
+  return {y,m,lead,cnt,notes,days};
+}
+const fmt=n=>String(n).replace(".",",");
+const LO=2026*12+9,HI=2027*12+11;
+let from=2026*12+10,to=2027*12+3;
+let single=innerWidth<600,cur=from;
+const now=new Date(),TK=key(now.getFullYear(),now.getMonth(),now.getDate()),NM=now.getFullYear()*12+now.getMonth();
+if(NM>=from&&NM<=to)cur=NM;
+let HRS="";try{HRS=localStorage.getItem("shiftcal.hours")||""}catch(e){}
+const $=id=>document.getElementById(id);
+const grid=$("grid"),sf=$("sf"),st=$("st");
+$("ver").textContent=VERSION;
+let opts="";
+for(let i=LO;i<=HI;i++) opts+=`<option value="${i}">${MONTHS[i%12]} ${Math.floor(i/12)}</option>`;
+sf.innerHTML=st.innerHTML=opts;sf.value=from;st.value=to;
+function render(){
+  let html="";
+  if(cur<from)cur=from;if(cur>to)cur=to;
+  for(let i=single?cur:from;i<=(single?cur:to);i++){
+    const y=Math.floor(i/12),m=i%12,md=monthData(y,m);
+    let cells=WD.map((w,j)=>`<div class="wd${j>4?" we":""}">${w}</div>`).join("")+'<div class="d e"></div>'.repeat(md.lead);
+    md.days.forEach(x=>{cells+=`<div class="d${x.v===1?" s":x.v===.5?" h":x.v===-.5?" h1":""}${x.dev?" v":""}${key(y,m,x.d)<TK?" p":""}" data-k="${key(y,m,x.d)}">${x.d}</div>`});
+    html+=`<section class="month"><div class="mh"><h2>${MONTHS[m]} ${y}</h2><span>смен: ${fmt(md.cnt)}</span></div><div class="days">${cells}</div>${md.notes.length?'<div class="note"><b>Отличия от 2/2:</b> '+md.notes.join(", ")+'</div>':""}</section>`;
+  }
+  grid.innerHTML=html;upd();
+}
+function stats(){
+  let sh=0,off=0,days=0,bo=0,bw=0,co=0,cw=0;
+  for(let i=from;i<=to;i++){const y=Math.floor(i/12),m=i%12;
+    for(const x of monthData(y,m).days){days++;sh+=Math.abs(x.v);
+      if(x.v===0){off++;co++;bo=Math.max(bo,co);cw=0}else{cw++;bw=Math.max(bw,cw);co=0}}}
+  return {sh,off,days,bo,bw};
+}
+function upd(){
+  const s=stats(),h=parseFloat(HRS);
+  $("sum").innerHTML=`<b>Итого за период:</b> смен ${fmt(s.sh)}, выходных ${s.off}, всего дней ${s.days}${h>0?`, часов ≈ ${fmt(Math.round(s.sh*h*10)/10)}`:""}<br>Самая длинная серия: смен подряд — ${s.bw}, выходных подряд — ${s.bo}`;
+  $("nav").hidden=!single;$("nl").textContent=MONTHS[cur%12]+" "+Math.floor(cur/12);
+  $("np").disabled=cur<=from;$("nn").disabled=cur>=to;
+  $("bv").textContent=single?"Показать все месяцы":"По одному месяцу";
+}
+$("np").onclick=()=>{cur--;render()};
+$("nn").onclick=()=>{cur++;render()};
+$("bv").onclick=()=>{single=!single;render()};
+$("hh").value=HRS;
+$("hh").oninput=()=>{HRS=$("hh").value;try{localStorage.setItem("shiftcal.hours",HRS)}catch(e){}upd()};
+// экспорт .ics (события на весь день)
+$("bi").onclick=()=>{
+  const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//shiftcal v"+VERSION+"//RU","CALSCALE:GREGORIAN"];
+  const stamp=new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z";
+  const ymd=t=>new Date(t).toISOString().slice(0,10).replace(/-/g,"");
+  let n=0;
+  for(let i=from;i<=to;i++){const y=Math.floor(i/12),m=i%12;
+    for(const x of monthData(y,m).days){
+      if(x.v===0) continue;
+      const t=Date.UTC(y,m,x.d);
+      const title=x.v===1?"Смена":x.v===.5?"Смена (вторая половина дня)":"Смена (первая половина дня)";
+      L.push("BEGIN:VEVENT","UID:shift-"+ymd(t)+"@shiftcal","DTSTAMP:"+stamp,"DTSTART;VALUE=DATE:"+ymd(t),"DTEND;VALUE=DATE:"+ymd(t+864e5),"SUMMARY:"+title,"END:VEVENT");n++;
+    }}
+  L.push("END:VCALENDAR");
+  const ics=L.join("\r\n"),ov=$("ov");
+  ov.innerHTML=`<p style="color:var(--text)">Событий: ${n} (на весь день), период: выбранный диапазон.</p><div class="ob"><a href="data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}" download="shifts.ics">Скачать .ics</a><button id="oc">Закрыть</button></div><p>Если скачивание не сработало, скачайте файл calendar.html и откройте его в браузере: там экспорт работает.</p>`;
+  ov.hidden=false;$("oc").onclick=()=>{ov.hidden=true;ov.innerHTML=""};
+};
+sf.onchange=()=>{from=+sf.value;if(to<from)to=from;st.value=to;render()};
+st.onchange=()=>{to=+st.value;if(from>to)from=to;sf.value=from;render()};
+// режим редактирования (всегда выключен при открытии)
+let editing=false,armed=null;
+const be=$("be"),br=$("br");
+be.onclick=()=>{editing=!editing;document.body.classList.toggle("edit",editing);be.textContent=editing?"Готово":"Редактировать";be.classList.toggle("on",editing);br.hidden=!editing;$("hint").hidden=!editing;disarm()};
+function disarm(){clearTimeout(armed);armed=null;br.textContent="Сбросить правки"}
+br.onclick=()=>{if(!armed){br.textContent="Точно сбросить?";armed=setTimeout(disarm,4000)}else{edits={};save();disarm();render()}};
+grid.onclick=e=>{
+  if(!editing) return;
+  const el=e.target.closest(".d[data-k]");if(!el) return;
+  const k=el.dataset.k,order=[undefined,1,0,.5,-.5];
+  const nx=order[(order.indexOf(edits[k])+1)%5];
+  if(nx===undefined) delete edits[k]; else edits[k]=nx;
+  save();render();
+};
+// экспорт PNG
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+$("bp").onclick=()=>{
+  const ms=[];for(let i=from;i<=to;i++) ms.push(monthData(Math.floor(i/12),i%12));
+  const cols=ms.length<=2?ms.length:ms.length<=4?2:3,rows=Math.ceil(ms.length/cols);
+  const W=300,G=16,CH=34,STEP=268/7,R=Math.max(...ms.map(x=>Math.ceil((x.lead+x.days.length)/7)));
+  const MH=16+30+24+R*(CH+4)+34,cw=cols*W+(cols+1)*G,chh=rows*MH+(rows+1)*G;
+  const cv=document.createElement("canvas");cv.width=cw*2;cv.height=chh*2;
+  const c=cv.getContext("2d");c.scale(2,2);
+  const F="Manrope,system-ui,sans-serif";
+  c.fillStyle="#121214";c.fillRect(0,0,cw,chh);
+  ms.forEach((md,i)=>{
+    const x0=G+(i%cols)*(W+G),y0=G+Math.floor(i/cols)*(MH+G);
+    rr(c,x0,y0,W,MH,14);c.fillStyle="#1b1b1f";c.fill();c.strokeStyle="#2a2a30";c.lineWidth=1;c.stroke();
+    c.textBaseline="alphabetic";c.textAlign="left";c.fillStyle="#e6e3e3";c.font="800 17px "+F;
+    c.fillText(MONTHS[md.m]+" "+md.y,x0+16,y0+34);
+    c.textAlign="right";c.fillStyle="#85838a";c.font="400 12px "+F;c.fillText("смен: "+fmt(md.cnt),x0+W-16,y0+34);
+    c.textAlign="center";c.font="400 11px "+F;
+    WD.forEach((w,j)=>{c.fillStyle=j>4?"#a8606b":"#85838a";c.fillText(w,x0+16+j*STEP+(STEP-4)/2,y0+60)});
+    md.days.forEach((x,j)=>{
+      const idx=md.lead+j,cx=x0+16+(idx%7)*STEP,cy=y0+68+Math.floor(idx/7)*(CH+4),w=STEP-4;
+      rr(c,cx,cy,w,CH,7);c.fillStyle=x.v===1?"#8c1c2c":"#222226";c.fill();
+      if(x.v===.5||x.v===-.5){c.save();c.clip();c.beginPath();if(x.v===.5){c.moveTo(cx+w,cy);c.lineTo(cx+w,cy+CH);c.lineTo(cx,cy+CH)}else{c.moveTo(cx,cy);c.lineTo(cx+w,cy);c.lineTo(cx,cy+CH)}c.closePath();c.fillStyle="#8c1c2c";c.fill();c.restore()}
+      if(x.v!==0){rr(c,cx+.5,cy+.5,w-1,CH-1,7);c.strokeStyle="#b3283c";c.stroke()}
+      c.fillStyle=x.v!==0?"#fff":"#9a98a0";c.font=(x.v!==0?"600":"400")+" 14px "+F;c.textAlign="center";
+      c.fillText(x.d,cx+w/2,cy+CH/2+5);
+    });
+    if(md.notes.length){c.textAlign="left";c.fillStyle="#85838a";c.font="400 11px "+F;c.fillText("Отличия от 2/2: "+md.notes.join(", "),x0+16,y0+MH-14,W-32)}
+  });
+  const url=cv.toDataURL("image/png"),ov=$("ov");
+  ov.innerHTML=`<img src="${url}" alt="Календарь смен"><div class="ob"><a href="${url}" download="calendar.png">Скачать PNG</a><button id="oc">Закрыть</button></div><p>Если скачивание не сработало, нажмите и удерживайте картинку, чтобы сохранить.</p>`;
+  ov.hidden=false;$("oc").onclick=()=>{ov.hidden=true;ov.innerHTML=""};
+};
+render();
+if("serviceWorker" in navigator) addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
