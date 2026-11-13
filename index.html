@@ -16,14 +16,17 @@
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--text);font-family:Manrope,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
 main{max-width:980px;margin:0 auto;padding:28px 16px 24px}
-h1{font-size:1.5rem;font-weight:800;margin:0 0 14px}
+h1{font-size:1.5rem;font-weight:800;margin:0 0 14px;text-align:center}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
 .bar label{color:var(--muted);font-size:.9rem}
 select,button,input{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font:inherit;font-size:.9rem}
 button{cursor:pointer}
 button.on{background:var(--shift);border-color:var(--shift-hi)}
+.rng{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.rng select{padding:6px 8px;font-size:.85rem;min-width:0}
+@media(max-width:600px){.rng{flex:1 1 100%}.rng select{flex:1}}
 .hint{color:var(--amber);font-size:.85rem;margin:0 0 12px}
-.legend{display:flex;gap:18px;color:var(--muted);font-size:.9rem;margin-bottom:22px;flex-wrap:wrap}
+.legend{display:flex;gap:18px;color:var(--muted);font-size:.9rem;margin:20px 0 14px;flex-wrap:wrap}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
 body.edit .grid{outline:2px solid var(--amber);outline-offset:8px;border-radius:14px}
@@ -42,7 +45,7 @@ body.edit .d:not(.e){cursor:pointer}
 .d.h{background:linear-gradient(135deg,var(--off) 50%,var(--shift) 50%);color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px var(--shift-hi)}
 .d.h1{background:linear-gradient(135deg,var(--shift) 50%,var(--off) 50%);color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px var(--shift-hi)}
 .d.p{opacity:.4}
-.sum{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.9rem;line-height:1.6;color:var(--muted)}
+.sum{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:0;font-size:.9rem;line-height:1.6;color:var(--muted)}
 .sum b{color:var(--text)}
 .nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px}
 .nav button{padding:8px 18px;font-size:1.1rem}
@@ -60,16 +63,16 @@ footer{text-align:center;color:#5d5b62;font-size:.7rem;padding:8px 0 24px}
 <main>
   <h1>Календарь смен</h1>
   <div class="bar">
-    <label>с</label><select id="sf"></select>
-    <label>по</label><select id="st"></select>
-    <button id="be">Редактировать</button>
+    <div class="rng"><label>с</label><select id="sf"></select><label>по</label><select id="st"></select></div>
+    <button id="be" title="Редактировать" aria-label="Редактировать">✏️</button>
     <button id="br" hidden>Сбросить правки</button>
     <button id="bp">Сохранить PNG</button>
     <button id="bi">Экспорт .ics</button>
     <button id="bv"></button>
-    <label>часов в смене</label><input id="hh" type="number" min="0" step="0.5" style="width:72px">
   </div>
-  <p class="hint" id="hint" hidden>Режим редактирования: нажимайте на дни. Круг: по графику → смена → выходной → вторая половина → первая половина.</p>
+  <p class="hint" id="hint" hidden>Режим редактирования: нажимайте на дни. Круг: по графику → смена → выходной → вторая половина → первая половина. Кнопка ✓ — завершить редактирование.</p>
+  <div class="nav" id="nav" hidden><button id="np">‹</button><span id="nl"></span><button id="nn">›</button></div>
+  <div class="grid" id="grid"></div>
   <div class="legend">
     <span><i style="background:var(--shift)"></i>рабочий день</span>
     <span><i style="background:var(--off)"></i>выходной</span>
@@ -78,13 +81,11 @@ footer{text-align:center;color:#5d5b62;font-size:.7rem;padding:8px 0 24px}
     <span><i style="background:none;border:1.5px dashed var(--amber)"></i>отличие от графика 2/2</span>
   </div>
   <div class="sum" id="sum"></div>
-  <div class="nav" id="nav" hidden><button id="np">‹</button><span id="nl"></span><button id="nn">›</button></div>
-  <div class="grid" id="grid"></div>
 </main>
 <footer>Календарь смен · v<span id="ver"></span></footer>
 <div id="ov" hidden></div>
 <script>
-const VERSION="1.6";
+const VERSION="1.12";
 const MONTHS=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 const WD=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 const START=Date.UTC(2026,10,1); // с 1 ноября: 2 через 2
@@ -113,11 +114,10 @@ function monthData(y,m){
 }
 const fmt=n=>String(n).replace(".",",");
 const LO=2026*12+10,HI=2027*12+11;
-let from=2026*12+10,to=2027*12+3;
-let single=innerWidth<600,cur=from;
+let from=2026*12+10,to=2027*12+1;
+let single=false,cur=from;
 const now=new Date(),TK=key(now.getFullYear(),now.getMonth(),now.getDate()),NM=now.getFullYear()*12+now.getMonth();
 if(NM>=from&&NM<=to)cur=NM;
-let HRS="12";try{const t=localStorage.getItem("shiftcal.hours");if(t!==null)HRS=t}catch(e){}
 const $=id=>document.getElementById(id);
 const grid=$("grid"),sf=$("sf"),st=$("st");
 $("ver").textContent=VERSION;
@@ -143,8 +143,8 @@ function stats(){
   return {sh,off,days,bo,bw};
 }
 function upd(){
-  const s=stats(),h=parseFloat(HRS);
-  $("sum").innerHTML=`<b>Итого за период:</b> смен ${fmt(s.sh)}, выходных ${s.off}, всего дней ${s.days}${h>0?`, часов ≈ ${fmt(Math.round(s.sh*h*10)/10)}`:""}<br>Самая длинная серия: смен подряд — ${s.bw}, выходных подряд — ${s.bo}`;
+  const s=stats();
+  $("sum").innerHTML=`<b>Итого за период:</b> смен ${fmt(s.sh)}, выходных ${s.off}, всего дней ${s.days}<br>Самая длинная серия: смен подряд — ${s.bw}, выходных подряд — ${s.bo}`;
   $("nav").hidden=!single;$("nl").textContent=MONTHS[cur%12]+" "+Math.floor(cur/12);
   $("np").disabled=cur<=from;$("nn").disabled=cur>=to;
   $("bv").textContent=single?"Показать все месяцы":"По одному месяцу";
@@ -152,8 +152,6 @@ function upd(){
 $("np").onclick=()=>{cur--;render()};
 $("nn").onclick=()=>{cur++;render()};
 $("bv").onclick=()=>{single=!single;render()};
-$("hh").value=HRS;
-$("hh").oninput=()=>{HRS=$("hh").value;try{localStorage.setItem("shiftcal.hours",HRS)}catch(e){}upd()};
 // экспорт .ics (события на весь день)
 $("bi").onclick=()=>{
   const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//shiftcal v"+VERSION+"//RU","CALSCALE:GREGORIAN"];
@@ -177,7 +175,7 @@ st.onchange=()=>{to=+st.value;if(from>to)from=to;sf.value=from;render()};
 // режим редактирования (всегда выключен при открытии)
 let editing=false,armed=null;
 const be=$("be"),br=$("br");
-be.onclick=()=>{editing=!editing;document.body.classList.toggle("edit",editing);be.textContent=editing?"Готово":"Редактировать";be.classList.toggle("on",editing);br.hidden=!editing;$("hint").hidden=!editing;disarm()};
+be.onclick=()=>{editing=!editing;document.body.classList.toggle("edit",editing);be.textContent=editing?"✓":"✏️";be.title=editing?"Готово":"Редактировать";be.classList.toggle("on",editing);br.hidden=!editing;$("hint").hidden=!editing;disarm()};
 function disarm(){clearTimeout(armed);armed=null;br.textContent="Сбросить правки"}
 br.onclick=()=>{if(!armed){br.textContent="Точно сбросить?";armed=setTimeout(disarm,4000)}else{edits={};save();disarm();render()}};
 grid.onclick=e=>{
