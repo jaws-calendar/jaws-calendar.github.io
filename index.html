@@ -67,7 +67,6 @@ footer{text-align:center;color:#5d5b62;font-size:.7rem;padding:8px 0 24px}
     <button id="be" title="Редактировать" aria-label="Редактировать">✏️</button>
     <button id="br" hidden>Сбросить правки</button>
     <button id="bp">Сохранить PNG</button>
-    <button id="bi">Экспорт .ics</button>
     <button id="bv"></button>
   </div>
   <p class="hint" id="hint" hidden>Режим редактирования: нажимайте на дни. Круг: по графику → смена → выходной → вторая половина → первая половина. Кнопка ✓ — завершить редактирование.</p>
@@ -85,7 +84,7 @@ footer{text-align:center;color:#5d5b62;font-size:.7rem;padding:8px 0 24px}
 <footer>Календарь смен · v<span id="ver"></span></footer>
 <div id="ov" hidden></div>
 <script>
-const VERSION="1.12";
+const VERSION="1.13";
 const MONTHS=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 const WD=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 const START=Date.UTC(2026,10,1); // с 1 ноября: 2 через 2
@@ -152,24 +151,6 @@ function upd(){
 $("np").onclick=()=>{cur--;render()};
 $("nn").onclick=()=>{cur++;render()};
 $("bv").onclick=()=>{single=!single;render()};
-// экспорт .ics (события на весь день)
-$("bi").onclick=()=>{
-  const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//shiftcal v"+VERSION+"//RU","CALSCALE:GREGORIAN"];
-  const stamp=new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z";
-  const ymd=t=>new Date(t).toISOString().slice(0,10).replace(/-/g,"");
-  let n=0;
-  for(let i=from;i<=to;i++){const y=Math.floor(i/12),m=i%12;
-    for(const x of monthData(y,m).days){
-      if(x.v===0) continue;
-      const t=Date.UTC(y,m,x.d);
-      const title=x.v===1?"Смена":x.v===.5?"Смена (вторая половина дня)":"Смена (первая половина дня)";
-      L.push("BEGIN:VEVENT","UID:shift-"+ymd(t)+"@shiftcal","DTSTAMP:"+stamp,"DTSTART;VALUE=DATE:"+ymd(t),"DTEND;VALUE=DATE:"+ymd(t+864e5),"SUMMARY:"+title,"END:VEVENT");n++;
-    }}
-  L.push("END:VCALENDAR");
-  const ics=L.join("\r\n"),ov=$("ov");
-  ov.innerHTML=`<p style="color:var(--text)">Событий: ${n} (на весь день), период: выбранный диапазон.</p><div class="ob"><a href="data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}" download="shifts.ics">Скачать .ics</a><button id="oc">Закрыть</button></div><p>Если скачивание не сработало, скачайте файл calendar.html и откройте его в браузере: там экспорт работает.</p>`;
-  ov.hidden=false;$("oc").onclick=()=>{ov.hidden=true;ov.innerHTML=""};
-};
 sf.onchange=()=>{from=+sf.value;if(to<from)to=from;st.value=to;render()};
 st.onchange=()=>{to=+st.value;if(from>to)from=to;sf.value=from;render()};
 // режим редактирования (всегда выключен при открытии)
